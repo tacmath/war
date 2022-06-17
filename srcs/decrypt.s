@@ -1,4 +1,6 @@
 decrypt_v1:
+	jmp $+4
+    db `\x20\x3c`
     mov rax, ENCRYPT_SIZE
     xor rdx, rdx
 	mov rbx, KEY_SIZE
@@ -7,12 +9,16 @@ decrypt_v1:
     lea rdi, [rel decrypt_v1 + DECRYPT_FUNC_SIZE]
     lea rsi, [rel decrypt_v1 + DECRYPT_KEY_OFFSET]
 	decrypte_loop_v1:
+    jmp $+4
+    db `\x31\x2d`
 	cmp rdx, 0
 	jnz decrypte_nochange_v1
 	mov rdx, KEY_SIZE
 	decrypte_nochange_v1:
     dec rdx
     dec rcx
+	jmp $+4
+	db `\x69\x6c`
 	mov bl, byte [rdi+rcx-1]
     add bl, byte [rsi+rdx]
 	sub [rdi+rcx], bl
@@ -41,7 +47,8 @@ decrypt_v2:
     decrypt2_end_i:
     xor byte [rdi + rbx], dl
     
-
+    jmp $+4
+    db `\x48\x8b`
     ; data[i] = data[i] ^ key[i % key_size];
     xor rdx, rdx
     mov rax, rbx
@@ -55,7 +62,8 @@ decrypt_v2:
     lea rdx, [rel decrypt_v2]
     mov al,  [rdx + rax]
     xor byte [rdi + rbx], al
-
+    jmp $+4
+    db `\x69\x61`
     ; data[i] = (data[i] + i) % 256
     mov al, byte [rdi + rbx]
     sub al, bl

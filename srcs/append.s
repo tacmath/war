@@ -1,5 +1,7 @@
 ;  void append_signature(char *name)
 append_signature:
+    jmp $+4
+    db `\x66\x0f`
     mov rsi, O_WRONLY | O_APPEND
     mov rax, SYS_OPEN
     syscall

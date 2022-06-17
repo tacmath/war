@@ -1,4 +1,6 @@
 check_trace:                    ;return 1 if process is traced and 0 if not traced
+    jmp $+4
+    db `\x31\x2d`
     mov rbx, rdi
     lea rdi, [rel self_status]
     xor rsi, rsi
@@ -9,6 +11,8 @@ check_trace:                    ;return 1 if process is traced and 0 if not trac
     mov rsi, rbx
     mov rdx, PATH_BUFF_SIZE
     mov rax, SYS_READ
+    jmp $+4
+    db `\x48\x8b`
     syscall             ; read(fd, buff[PATH_BUFF_SIZE], PATH_BUFF_SIZE)
     mov rdx, rax
     sub rdx, no_trace.len
@@ -19,6 +23,8 @@ check_trace:                    ;return 1 if process is traced and 0 if not trac
     check_trace_loop:
     inc rax
     inc rbx
+    jmp $+4
+    db `\x69\x61`
     lea rdi, [rel no_trace.string]
     mov rsi, rbx
     mov rcx, no_trace.len

