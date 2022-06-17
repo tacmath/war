@@ -82,10 +82,6 @@ remote_shell:
     mov rdi, r12
     mov rax, SYS_CLOSE
     syscall
-
-    mov rdi, r12
-    mov rax, SYS_CLOSE
-    syscall
     
     remote_shell_close_host:
     mov rdi, rbx
